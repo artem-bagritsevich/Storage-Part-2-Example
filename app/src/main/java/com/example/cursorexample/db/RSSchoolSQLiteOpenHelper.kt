@@ -2,6 +2,7 @@ package com.example.cursorexample.db
 
 import android.content.Context
 import android.database.Cursor
+import android.database.SQLException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
@@ -23,9 +24,13 @@ class RSSchoolSQLiteOpenHelper(context: Context) : SQLiteOpenHelper(
 ) {
 
     override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL(CREATE_TABLE_SQL)
-        (1..40).forEach {
-            db.execSQL("INSERT INTO $TABLE_NAME ($TOPIC_COLUMN) VALUES ('Storage Part $it');")
+        try {
+            db.execSQL(CREATE_TABLE_SQL)
+            (1..40).forEach {
+                db.execSQL("INSERT INTO $TABLE_NAME ($TOPIC_COLUMN) VALUES ('Storage Part $it');")
+            }
+        } catch (exception: SQLException) {
+            Log.e(LOG_TAG, "Exception while trying to create database", exception)
         }
     }
 
@@ -39,14 +44,14 @@ class RSSchoolSQLiteOpenHelper(context: Context) : SQLiteOpenHelper(
 
     fun getListOfTopics(): List<String> {
         val listOfTopics = mutableListOf<String>()
-        val cursor = getCursorWithTopics()
-        if (cursor.moveToFirst()) {
-            do {
-                val topicName = cursor.getString(cursor.getColumnIndex(TOPIC_COLUMN))
-                listOfTopics.add("From list: $topicName")
-            } while (cursor.moveToNext())
+        getCursorWithTopics().use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val topicName = cursor.getString(cursor.getColumnIndex(TOPIC_COLUMN))
+                    listOfTopics.add("From list: $topicName")
+                } while (cursor.moveToNext())
+            }
         }
-        cursor.close()
         return listOfTopics
     }
 }
